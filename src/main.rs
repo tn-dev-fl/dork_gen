@@ -1,5 +1,8 @@
+use rayon::prelude::*;
 use regex::Regex;
-use std::{fs::OpenOptions, io::Write, os::unix::fs::FileExt, ptr::write_unaligned};
+use std::{
+    fs::OpenOptions, io::Write, os::unix::fs::FileExt, ptr::write_unaligned, time::Duration,
+};
 fn main() {
     /*
     let req=reqwest::blocking::Client::new().get("https://plugins.svn.wordpress.org/").header("User-Agent","Mozilla/5.0 (Linux;Android 13; SM-S908B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36").send().unwrap().text().unwrap();
@@ -19,7 +22,15 @@ fn main() {
         // println!("the res is {}", i);
     }
     */
-    read();
+    let pool = rayon::ThreadPoolBuilder::new()
+        .num_threads(15)
+        .build_global()
+        .expect("error");
+
+    let mut site = read("output.txt");
+    //let mut path = read("test.txt");
+
+    let all = site.into_par_iter().for_each(|(x)| req(&x));
 }
 fn write_file(fname: &str, line: String) {
     let mut file = OpenOptions::new()
@@ -31,21 +42,31 @@ fn write_file(fname: &str, line: String) {
     writeln!(&file, "/wp-content/plugins/{}", line);
 }
 
-fn read() -> Vec<String> {
-    let file = std::fs::read_to_string("res").unwrap();
+fn read(fname: &str) -> Vec<String> {
+    let file = std::fs::read_to_string(fname).unwrap();
     let line: Vec<String> = file
         .lines()
-        .map(|s| s.replace(r#"""#, "").to_string())
+        .map(|s| s.replace(r#"""#, "").replace(" ", "").to_string())
         .collect();
 
-    for li in &line {
-        println!("{}", li);
-    }
+    // for li in &line {
+    //   println!("{}", li);
+    //}
     return line;
 }
 
+fn req(url: &str) {
+    let mut path = read("test.txt");
+    for i in path {
+        //println!("{}", format!("https://{}{}", url, i));
 
-fn req(url:&str,path:&str){
+        let req = reqwest::blocking::get(format!("https://{}/{}/readme.txt", url, i)).unwrap();
+        if req.status().is_success() {
+            println!("{}", format!("https://{}/{}", url, i));
+        } else {
+            //println!("{}  status code is {}", url, req.status());
+        }
 
-    let req=reqwest::blocking::get(format!("https://{}"))
+        //std::thread::sleep(Duration::from_secs(2));
+    }
 }
