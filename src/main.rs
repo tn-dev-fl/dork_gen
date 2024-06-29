@@ -1,7 +1,7 @@
 use rayon::prelude::*;
 use regex::Regex;
 use std::{
-    fs::OpenOptions, io::Write, os::unix::fs::FileExt, ptr::write_unaligned, time::Duration,
+    fs::OpenOptions, io::Write, os::unix::fs::FileExt, ptr::write_unaligned, rc::Rc, time::Duration,
 };
 fn main() {
     /*
@@ -23,7 +23,7 @@ fn main() {
     }
     */
     let pool = rayon::ThreadPoolBuilder::new()
-        .num_threads(15)
+        .num_threads(20)
         .build_global()
         .expect("error");
 
@@ -42,6 +42,17 @@ fn write_file(fname: &str, line: String) {
     writeln!(&file, "/wp-content/plugins/{}", line);
 }
 
+fn write_url(fname: &str, line: String) {
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .create(true)
+        .open(fname)
+        .expect("file problem");
+
+    writeln!(&file, "{}", line);
+}
+
 fn read(fname: &str) -> Vec<String> {
     let file = std::fs::read_to_string(fname).unwrap();
     let line: Vec<String> = file
@@ -57,15 +68,38 @@ fn read(fname: &str) -> Vec<String> {
 
 fn req(url: &str) {
     let mut path = read("test.txt");
+    let re = Regex::new(r#"Stable tag:[ .0-9]{6}"#).unwrap();
     for i in path {
         //println!("{}", format!("https://{}{}", url, i));
 
         let req = reqwest::blocking::get(format!("https://{}/{}/readme.txt", url, i)).unwrap();
-        if req.status().is_success() {
-            println!("{}", format!("https://{}/{}", url, i));
-        } else {
-            //println!("{}  status code is {}", url, req.status());
+        //  let req = reqwest::blocking::get(
+        //    "https://www.wpallimport.com//wp-content/plugins/advanced-cron-manager/readme.txt",
+        // )
+        // .unwrap();
+        //println!("test {}", req.text().unwrap());
+        if let Some(test) = re.captures(&req.text().unwrap()) {
+            println!(
+                "{} found {:?}",
+                format!("https://{}/{}/readme.txt", url, i),
+                test.get(0).unwrap().as_str()
+            );
+            write_url(
+                "hits",
+                format!(
+                    "https://{}/{}/readme.txt | {}",
+                    url,
+                    i,
+                    test.get(0).unwrap().as_str()
+                ),
+            );
         }
+
+        //        if let Some(res) = re.captures(&req.text().unwrap()).unwrap().get(1) {
+        //          println!("{}", format!("https://{}/{}", url, i));
+        //    } else {
+        //println!("{}  status code is {}", url, req.status());
+        //  }
 
         //std::thread::sleep(Duration::from_secs(2));
     }

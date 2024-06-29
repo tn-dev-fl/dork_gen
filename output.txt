@@ -2714,7 +2714,6 @@ aicontentfy.com
 ph.godaddy.com
 10to8.com
 glpi-project.org
-vossle.ai
 rextheme.com
 freemius.com
 www.igvinc.com
@@ -2802,7 +2801,6 @@ www.wpstaq.com
 pksf.org.bd
 futureislam.org
 adguardteam.github.io
-builder.hufs.ac.kr
 support.iubenda.com
 tools.pingdom.com
 www.goinflow.com
